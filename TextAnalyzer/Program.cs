@@ -30,6 +30,7 @@ namespace TextAnalyzer
 				
 				var analyzer = TextAnalyzer.FromFile(fileName);
 				Console.WriteLine($"File size: {analyzer.FileInfo.Length} bytes");
+				Console.WriteLine($"Text size: {analyzer.Text.Length} bytes");
 				Console.WriteLine($"Alphabet count: {analyzer.Alphabet.Count}");
 				Console.WriteLine($"Average entropy: {analyzer.GetAvgEntropy():F3} bits");
 				Console.WriteLine($"Info quantity: {analyzer.GetInfoQuantity() / 8:F3} bytes");
@@ -118,7 +119,7 @@ namespace TextAnalyzer
 
 		public static string BuildPath(string fileName)
 		{
-			return TextFolderPath + fileName + Txt;
+			return $"{TextFolderPath}{fileName}/{fileName}{Txt}";
 		}
 	}
 }
