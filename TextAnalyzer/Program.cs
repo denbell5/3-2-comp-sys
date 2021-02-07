@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace TextAnalyzer
 {
@@ -17,109 +18,92 @@ namespace TextAnalyzer
 
 		static void Main(string[] args)
 		{
-			while (true)
+			var subdirNames = Directory.GetDirectories(FileHelper.TextFolderPath);
+			var dirInfo = new DirectoryInfo(FileHelper.TextFolderPath);
+			var subDirs = dirInfo.GetDirectories();
+
+			foreach (var subDir in subDirs)
 			{
-				Console.WriteLine();
-				Console.Write("Enter file name (without extension): ");
-				string fileName = null;
-				WriteWithColor(ConsoleColor.Green, () => 
+				var files = subDir.GetFiles();
+				foreach (var file in files)
 				{
-					fileName = Console.ReadLine();
-					Console.WriteLine($"*** Analyzing {fileName} ***");
-				});
-				
-				var analyzer = TextAnalyzer.FromFile(fileName);
-				Console.WriteLine($"File size: {analyzer.FileInfo.Length} bytes");
-				Console.WriteLine($"Text size: {analyzer.Text.Length} bytes");
-				Console.WriteLine($"Alphabet count: {analyzer.Alphabet.Count}");
-				Console.WriteLine($"Average entropy: {analyzer.GetAvgEntropy():F3} bits");
-				Console.WriteLine($"Info quantity: {analyzer.GetInfoQuantity() / 8:F3} bytes");
-				Console.WriteLine();
+					var isTxt = file.Extension == FileHelper.Txt;
+					TextAnalyzer defaultTextAnalyzer = null;
+					if (isTxt)
+					{
+						var text = file.OpenText().ReadToEnd();
+						defaultTextAnalyzer = new TextAnalyzer(text);
+					}
 
-				while (true)
-				{
-					Console.Write("Enter symbol to count frequency (or 2 and more symbols to quit): ");
-					var str = Console.ReadLine();
-					if (str.Length != 1)
-						break;
+					var bytes = FileHelper.ReadBytes(file);
+					var base64String = CustomEncoder.ToBase64(bytes);
+					var base64StringAnalyzer = new TextAnalyzer(base64String);
 
-					var symbol = str.ToCharArray().First();
-					Console.WriteLine(analyzer.GetSymbolFrequency(symbol));
+					WriteWithColor(ConsoleColor.Green, () => 
+						Console.WriteLine(file.FullName));
+
+					Console.WriteLine($"File size: {file.Length} bytes");
+					if (defaultTextAnalyzer != null)
+					{
+						defaultTextAnalyzer.PrintInfo();
+					}
+					WriteWithColor(ConsoleColor.Green, () =>
+						Console.WriteLine("Base64 info:"));
+					base64StringAnalyzer.PrintInfo();
 					Console.WriteLine();
 				}
 			}
 		}
 	}
 
-	public class TextAnalyzer
-	{
-		public string Text { get; }
-		public FileInfo FileInfo { get; }
-		public HashSet<char> Alphabet { get; }
-
-		public static TextAnalyzer FromFile(string fileName)
-		{
-			string path = DirectoryHelper.BuildPath(fileName);
-			var fileInfo = new FileInfo(path);
-			string text = null;
-
-			using (var reader = fileInfo.OpenText())
-			{
-				text = reader.ReadToEnd();
-			}
-
-			return new TextAnalyzer(fileInfo, text);
-		}
-
-		private TextAnalyzer(FileInfo fileInfo, string text)
-		{
-			FileInfo = fileInfo;
-			Text = text;
-			Alphabet = GetAlphabetFrom(text);
-		}
-
-		private HashSet<char> GetAlphabetFrom(string text)
-		{
-			var alphabet = new HashSet<char>();
-			var distinct = text.ToCharArray().Distinct().ToList();
-			distinct.ForEach(ch => alphabet.Add(ch));
-			return alphabet;
-		}
-
-		public double GetSymbolFrequency(char symbol)
-		{
-			var symbolCount = Text.Count(ch => ch == symbol);
-			var textLength = (double)Text.Length;
-			return symbolCount / textLength;
-		}
-
-		public double GetAvgEntropy()
-		{
-			double result = 0;
-			foreach (var symbol in Alphabet)
-			{
-				var freq = GetSymbolFrequency(symbol);
-				result += freq * Math.Log2(1 / freq);
-			}
-
-			return result;
-		}
-
-		public double GetInfoQuantity()
-		{
-			var entropy = GetAvgEntropy();
-			return entropy * Text.Length;
-		}
-	}
+	
 
 	public static class DirectoryHelper
 	{
-		public const string TextFolderPath = "../../../../texts/";
+		public const string TextFolderPath = "../../texts/";
 		public const string Txt = ".txt";
 
 		public static string BuildPath(string fileName)
 		{
 			return $"{TextFolderPath}{fileName}/{fileName}{Txt}";
+		}
+	}
+
+	public static class FileHelper
+	{
+		public const string TextFolderPath = "../../../../texts/";
+		public const string Txt = ".txt";
+
+		public static string BuildPath(string fileName, string fileExtension)
+		{
+			return $"{TextFolderPath}{fileName}/{fileName}{fileExtension}";
+		}
+
+		public static long GetFileSize(string fileName, string fileExtension)
+		{
+			return new FileInfo(BuildPath(fileName, fileExtension)).Length;
+		}
+
+		public static byte[] ReadBytes(FileInfo fileInfo)
+		{
+			var fileSize = fileInfo.Length;
+			byte[] buffer = new byte[fileSize];
+
+			var stream = fileInfo.OpenRead();
+			stream.Read(buffer);
+
+			return buffer;
+		}
+
+		public static string ReadText(string fileName, string fileExtension)
+		{
+			var path = BuildPath(fileName, fileExtension);
+			string text = null;
+			using (var reader = new StreamReader(path))
+			{
+				text = reader.ReadToEnd();
+			}
+			return text;
 		}
 	}
 }
