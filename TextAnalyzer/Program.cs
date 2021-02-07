@@ -47,25 +47,14 @@ namespace TextAnalyzer
 					{
 						defaultTextAnalyzer.PrintInfo();
 					}
+
 					WriteWithColor(ConsoleColor.Green, () =>
 						Console.WriteLine("Base64 info:"));
+
 					base64StringAnalyzer.PrintInfo();
 					Console.WriteLine();
 				}
 			}
-		}
-	}
-
-	
-
-	public static class DirectoryHelper
-	{
-		public const string TextFolderPath = "../../texts/";
-		public const string Txt = ".txt";
-
-		public static string BuildPath(string fileName)
-		{
-			return $"{TextFolderPath}{fileName}/{fileName}{Txt}";
 		}
 	}
 
